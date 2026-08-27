@@ -1,0 +1,12 @@
+# Secrets / credentials
+.env
+
+# Database data files
+*.db 
+
+# Python bytecode
+__pycache__/
+*.pyc 
+
+# Personal notes
+notes.txt
