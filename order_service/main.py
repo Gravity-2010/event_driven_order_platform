@@ -18,7 +18,7 @@ class Order(BaseModel):
 def health_check():
     return {"status": "ok"}
 
-@app.post("/orders")
+@app.post("/orders", status_code = 201)
 def create_order(order: Order):
     global next_order_id 
     order_dict[next_order_id] = order
