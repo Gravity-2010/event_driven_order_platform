@@ -11,4 +11,5 @@ def test_health():
 def test_create_order():
     response = client.post("/orders", json = {"customer_id": 123, "items": [{"product_id": 42, "quantity": 2}]})
     assert response.status_code == 201
-    assert response.json() == {"Order Created for Customer Id": 123}
+    assert isinstance(response.json()["order_id"], int)
+    assert response.json()["customer_id"] == 123

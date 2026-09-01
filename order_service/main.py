@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from order_service.database import SessionLocal
+from order_service.models_db import OrderDB
 
 app = FastAPI()
-
-order_dict = {}
-next_order_id = 1
 
 class OrderItem(BaseModel):
     product_id: int
@@ -14,19 +14,28 @@ class Order(BaseModel):
     customer_id: int
     items: list[OrderItem]
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
 
 @app.post("/orders", status_code = 201)
-def create_order(order: Order):
-    global next_order_id 
-    order_dict[next_order_id] = order
-    next_order_id += 1
-    return {"Order Created for Customer Id": order.customer_id}
+def create_order(order: Order, db: Session = Depends(get_db)):
+    db_order = OrderDB(customer_id = order.customer_id, items = [item.model_dump() for item in order.items])
+    db.add(db_order)
+    db.commit()
+    db.refresh(db_order)
+    return {"order_id": db_order.id, "customer_id": db_order.customer_id}
 
 @app.get("/orders/{order_id}")
-def get_order(order_id: int):
-    if order_id not in order_dict:
+def get_order(order_id: int, db: Session = Depends(get_db)):
+    db_order = db.query(OrderDB).filter(OrderDB.id == order_id).first()
+    if not db_order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return order_dict[order_id]
+    return {"order_id": db_order.id, "customer_id": db_order.customer_id, "items": db_order.items}
